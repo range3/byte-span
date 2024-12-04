@@ -30,6 +30,11 @@ class basic_byte_view {
   constexpr basic_byte_view(pointer data, index_type size) noexcept
       : data_(data), size_(size) {}
 
+  constexpr void swap(basic_byte_view& other) noexcept {
+    std::swap(data_, other.data_);
+    std::swap(size_, other.size_);
+  }
+
   constexpr auto data() const noexcept -> pointer { return data_; }
   constexpr auto size() const noexcept -> index_type { return size_; }
   constexpr auto empty() const noexcept -> bool { return size_ == 0U; }
@@ -76,5 +81,11 @@ class basic_byte_view {
 // Type aliases
 using byte_view = basic_byte_view<std::byte>;
 using cbyte_view = basic_byte_view<const std::byte>;
+
+template <Byte B>
+constexpr void swap(basic_byte_view<B>& left,
+                    basic_byte_view<B>& right) noexcept {
+  left.swap(right);
+}
 
 }  // namespace lsm::utils

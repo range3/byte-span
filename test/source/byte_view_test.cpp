@@ -110,4 +110,39 @@ TEST_CASE("byte_view basic functionality", "[byte_view]") {
                                       std::byte{42}};
     REQUIRE(std::equal(view.rbegin(), view.rend(), reversed.begin()));
   }
+
+  SECTION("swap operation") {
+    std::array<std::byte, 3> data1{std::byte{1}, std::byte{2}, std::byte{3}};
+    std::array<std::byte, 2> data2{std::byte{4}, std::byte{5}};
+
+    auto view1 = byte_view(data1.data(), data1.size());
+    auto view2 = byte_view(data2.data(), data2.size());
+
+    // swap by member function
+    view1.swap(view2);
+
+    // view1 reference data2
+    REQUIRE(view1.data() == data2.data());
+    REQUIRE(view1.size() == 2);
+    REQUIRE(std::to_integer<int>(view1[0]) == 4);
+    REQUIRE(std::to_integer<int>(view1[1]) == 5);
+
+    // view2 reference data1
+    REQUIRE(view2.data() == data1.data());
+    REQUIRE(view2.size() == 3);
+    REQUIRE(std::to_integer<int>(view2[0]) == 1);
+    REQUIRE(std::to_integer<int>(view2[1]) == 2);
+    REQUIRE(std::to_integer<int>(view2[2]) == 3);
+
+    // swap back by non-member function
+    swap(view1, view2);
+
+    REQUIRE(view1.data() == data1.data());
+    REQUIRE(view1.size() == 3);
+    REQUIRE(std::to_integer<int>(view1[0]) == 1);
+
+    REQUIRE(view2.data() == data2.data());
+    REQUIRE(view2.size() == 2);
+    REQUIRE(std::to_integer<int>(view2[0]) == 4);
+  }
 }
