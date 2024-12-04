@@ -16,8 +16,10 @@ find_package(Catch2 REQUIRED)
 include(Catch)
 
 # ---- Tests ----
+file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS
+     "${CMAKE_CURRENT_SOURCE_DIR}/source/*_test.cpp")
 
-add_executable(lsm-tree_test source/lsm-tree_test.cpp)
+add_executable(lsm-tree_test ${TEST_SOURCES})
 target_link_libraries(
     lsm-tree_test PRIVATE
     lsm-tree::lsm-tree

@@ -32,7 +32,8 @@ target_include_directories(
 target_compile_features(lsm-tree_lsm-tree INTERFACE cxx_std_20)
 
 find_package(fmt REQUIRED)
-target_link_libraries(lsm-tree_lsm-tree INTERFACE fmt::fmt)
+find_package(inspector REQUIRED)
+target_link_libraries(lsm-tree_lsm-tree INTERFACE fmt::fmt inspector::inspector)
 
 # ---- Install rules ----
 
