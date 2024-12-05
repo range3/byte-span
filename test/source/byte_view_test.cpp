@@ -3,11 +3,14 @@
 #include <cstddef>
 #include <iterator>
 #include <stdexcept>
+#include <type_traits>
 
+#include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include "lsm-tree/byte_view.hpp"
 
+using lsm::utils::basic_byte_view;
 using lsm::utils::byte_view;
 using lsm::utils::cbyte_view;
 
@@ -23,7 +26,7 @@ TEST_CASE("byte_view basic functionality", "[byte_view]") {
   }
 
   SECTION("empty view") {
-    auto const view = byte_view(nullptr, 0);
+    auto const view = byte_view{};
 
     REQUIRE(view.data() == nullptr);
     REQUIRE(view.size() == 0);  // NOLINT
@@ -144,5 +147,81 @@ TEST_CASE("byte_view basic functionality", "[byte_view]") {
     REQUIRE(view2.data() == data2.data());
     REQUIRE(view2.size() == 2);
     REQUIRE(std::to_integer<int>(view2[0]) == 4);
+  }
+}
+
+TEST_CASE("byte_view conversion constraints", "[byte_view]") {
+  // byte type
+  STATIC_REQUIRE(std::is_constructible_v<byte_view, char*, std::size_t>);
+  STATIC_REQUIRE(
+      std::is_constructible_v<byte_view, unsigned char*, std::size_t>);
+  STATIC_REQUIRE(std::is_constructible_v<byte_view, std::byte*, std::size_t>);
+
+  // non-byte type
+  STATIC_REQUIRE(std::is_constructible_v<byte_view, int*, std::size_t>);
+  STATIC_REQUIRE(std::is_constructible_v<byte_view, float*, std::size_t>);
+  STATIC_REQUIRE(std::is_constructible_v<byte_view, double*, std::size_t>);
+}
+
+// Byte type constructors
+TEMPLATE_TEST_CASE("construct from different byte types",
+                   "[byte_view][template]",
+                   char,
+                   unsigned char,
+                   std::byte) {
+  auto data = std::array<TestType, 3>{TestType{1}, TestType{2}, TestType{3}};
+
+  SECTION("construct with pointer and size") {
+    auto view = byte_view(data.data(), data.size());
+    REQUIRE(view.size() == 3);
+    REQUIRE_FALSE(view.empty());
+  }
+
+  SECTION("construct with pointer range") {
+    auto view = byte_view(data.data(), data.data() + data.size());
+    REQUIRE(view.size() == 3);
+    REQUIRE_FALSE(view.empty());
+  }
+
+  SECTION("construct empty view") {
+    auto view = byte_view(data.data(), size_t{0});
+    REQUIRE(view.size() == 0);  // NOLINT
+    REQUIRE(view.empty());
+  }
+}
+
+TEST_CASE("test", "[test]") {
+  SECTION("test") {
+    auto data =
+        std::array<std::byte, 3>{std::byte{1}, std::byte{2}, std::byte{3}};
+    auto view = byte_view(data.data(), 0);
+    REQUIRE(view.empty());
+  }
+}
+
+// Non-byte type constructors
+TEMPLATE_TEST_CASE("construct from non-byte types",
+                   "[byte_view][template]",
+                   int,
+                   float,
+                   double) {
+  auto data = std::array<TestType, 3>{TestType{1}, TestType{2}, TestType{3}};
+
+  SECTION("construct with pointer and size") {
+    auto view = byte_view(data.data(), data.size());
+    REQUIRE(view.size() == 3 * sizeof(TestType));
+    REQUIRE_FALSE(view.empty());
+  }
+
+  SECTION("construct with pointer range") {
+    auto view = byte_view(data.data(), data.data() + data.size());
+    REQUIRE(view.size() == 3 * sizeof(TestType));
+    REQUIRE_FALSE(view.empty());
+  }
+
+  SECTION("construct empty view") {
+    auto view = byte_view(data.data(), 0);
+    REQUIRE(view.size() == 0);  // NOLINT
+    REQUIRE(view.empty());
   }
 }

@@ -2,6 +2,9 @@
 
 #include <concepts>
 #include <cstddef>
+#include <cstdint>
+#include <iterator>
+#include <ranges>
 #include <stdexcept>
 #include <type_traits>
 
@@ -11,6 +14,18 @@ template <typename T>
 concept Byte = std::same_as<std::remove_cv_t<T>, char> ||
                std::same_as<std::remove_cv_t<T>, unsigned char> ||
                std::same_as<std::remove_cv_t<T>, std::byte>;
+
+template <typename Container>
+concept ByteContainer = requires {
+  requires std::ranges::contiguous_range<Container>;
+  requires Byte<std::ranges::range_value_t<Container>>;
+};
+
+template <typename Container>
+concept NonByteContainer = requires {
+  requires std::ranges::contiguous_range<Container>;
+  requires(!Byte<std::ranges::range_value_t<Container>>);
+};
 
 template <Byte B>
 class basic_byte_view {
@@ -27,8 +42,48 @@ class basic_byte_view {
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
   using index_type = std::size_t;
 
+  // -------------- constructors -------------------
+  // empty constructor
+  constexpr basic_byte_view() noexcept = default;
+
+  // from same type ranges
   constexpr basic_byte_view(pointer data, index_type size) noexcept
       : data_(data), size_(size) {}
+
+  // from different byte type ranges
+  template <Byte OtherB>
+  constexpr basic_byte_view(OtherB* data, index_type size) noexcept
+      : data_(reinterpret_cast<pointer>(data)), size_(size) {}
+  template <Byte OtherB>
+  constexpr basic_byte_view(OtherB* first, OtherB* last) noexcept
+      : basic_byte_view(first,
+                        static_cast<index_type>(std::distance(first, last))) {}
+
+  // explicit, from non-byte type ranges.
+  template <typename NonByteType>
+    requires(!Byte<NonByteType> && std::is_trivially_copyable_v<NonByteType>)
+  explicit basic_byte_view(NonByteType* data, index_type size) noexcept
+      : data_(reinterpret_cast<pointer>(data)), size_(size * sizeof(*data)) {}
+  template <typename NonByteType>
+    requires(!Byte<NonByteType> && std::is_trivially_copyable_v<NonByteType>)
+  explicit basic_byte_view(NonByteType* first, NonByteType* last) noexcept
+      : basic_byte_view(first,
+                        static_cast<index_type>(std::distance(first, last))) {}
+
+  // explicit, from void pointer ranges.
+  template <typename VoidType>
+    requires std::is_void_v<std::remove_cv_t<VoidType>>
+  constexpr explicit basic_byte_view(VoidType* data, index_type size) noexcept
+      : data_(static_cast<pointer>(data)), size_(size) {
+    assert(!(data == nullptr && size != 0));
+  }
+  template <typename VoidType>
+    requires std::is_void_v<std::remove_cv_t<VoidType>>
+  constexpr explicit basic_byte_view(VoidType* first, VoidType* last) noexcept
+      : basic_byte_view(
+            first,
+            static_cast<index_type>(reinterpret_cast<std::uintptr_t>(last) -
+                                    reinterpret_cast<std::uintptr_t>(first))) {}
 
   constexpr void swap(basic_byte_view& other) noexcept {
     std::swap(data_, other.data_);
@@ -74,8 +129,8 @@ class basic_byte_view {
   }
 
  private:
-  pointer data_;
-  index_type size_;
+  pointer data_{nullptr};
+  index_type size_{0};
 };
 
 // Type aliases
