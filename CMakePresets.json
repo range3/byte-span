@@ -139,7 +139,8 @@
       "inherits": [
         "coverage-linux",
         "dev-mode",
-        "vcpkg"
+        "vcpkg",
+        "fetchcontent"
       ],
       "cacheVariables": {
         "COVERAGE_HTML_COMMAND": ""
@@ -151,7 +152,8 @@
       "inherits": [
         "ci-linux",
         "dev-mode",
-        "vcpkg"
+        "vcpkg",
+        "fetchcontent"
       ],
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Sanitize",
@@ -179,7 +181,8 @@
         "ci-darwin",
         "dev-mode",
         "ci-multi-config",
-        "vcpkg"
+        "vcpkg",
+        "fetchcontent"
       ]
     },
     {
@@ -189,6 +192,7 @@
         "ci-linux",
         "clang-tidy",
         "vcpkg",
+        "fetchcontent",
         "cppcheck",
         "dev-mode"
       ]
@@ -201,6 +205,7 @@
         "dev-mode",
         "ci-multi-config",
         "vcpkg",
+        "fetchcontent",
         "vcpkg-win64-static"
       ]
     }
