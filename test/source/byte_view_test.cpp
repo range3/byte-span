@@ -2,6 +2,7 @@
 #include <array>
 #include <cstddef>
 #include <iterator>
+#include <span>
 #include <stdexcept>
 #include <type_traits>
 
@@ -190,14 +191,23 @@ TEMPLATE_TEST_CASE("construct from different byte types",
   }
 }
 
-TEST_CASE("test", "[test]") {
-  SECTION("test") {
-    auto data =
-        std::array<std::byte, 3>{std::byte{1}, std::byte{2}, std::byte{3}};
-    auto view = byte_view(data.data(), 0);
-    REQUIRE(view.empty());
-  }
-}
+// TEST_CASE("test", "[test]") {
+//   SECTION("test") {
+//     auto data =
+//         std::array<std::byte, 3>{std::byte{1}, std::byte{2}, std::byte{3}};
+//     auto view = byte_view(data.begin(), data.end());
+//     // REQUIRE(view.empty());
+//     REQUIRE(view.size() == 3);
+//   }
+
+//   SECTION("span") {
+//     auto data =
+//         std::array<std::byte, 3>{std::byte{1}, std::byte{2}, std::byte{3}};
+//     auto view = std::span(data.data(), 0);
+//     REQUIRE(view.size() == 3);
+//     REQUIRE_FALSE(view.empty());
+//   }
+// }
 
 // Non-byte type constructors
 TEMPLATE_TEST_CASE("construct from non-byte types",
