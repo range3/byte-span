@@ -11,9 +11,9 @@
 namespace lsm::utils {
 
 template <typename T>
-concept Byte = std::same_as<std::remove_cv_t<T>, char> ||
-               std::same_as<std::remove_cv_t<T>, unsigned char> ||
-               std::same_as<std::remove_cv_t<T>, std::byte>;
+concept Byte = std::same_as<std::remove_cv_t<T>, char>
+            || std::same_as<std::remove_cv_t<T>, unsigned char>
+            || std::same_as<std::remove_cv_t<T>, std::byte>;
 
 template <typename Container>
 concept ByteContainer = requires {
@@ -80,10 +80,10 @@ class basic_byte_view {
   template <typename VoidType>
     requires std::is_void_v<std::remove_cv_t<VoidType>>
   constexpr explicit basic_byte_view(VoidType* first, VoidType* last) noexcept
-      : basic_byte_view(
-            first,
-            static_cast<index_type>(reinterpret_cast<std::uintptr_t>(last) -
-                                    reinterpret_cast<std::uintptr_t>(first))) {}
+      : basic_byte_view(first,
+                        static_cast<index_type>(
+                            reinterpret_cast<std::uintptr_t>(last)
+                            - reinterpret_cast<std::uintptr_t>(first))) {}
 
   constexpr void swap(basic_byte_view& other) noexcept {
     std::swap(data_, other.data_);

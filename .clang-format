@@ -11,4 +11,6 @@ IncludeCategories:
   - Regex: '^<.*'
     Priority: -1
 SpacesInContainerLiterals: false
+BreakBeforeBinaryOperators: NonAssignment
+AlignOperands: AlignAfterOperator
 ...
