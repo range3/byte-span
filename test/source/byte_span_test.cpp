@@ -204,4 +204,85 @@ TEST_CASE("byte_span basic functionality", "[byte_span]") {
   }
 }
 
+TEST_CASE("byte_span construction from ranges", "[byte_span][range]") {
+  SECTION("construction from byte containers") {
+    // std::vector<char>
+    auto char_vec = std::vector<char>{'a', 'b', 'c'};
+    auto char_span = byte_span{char_vec};
+    REQUIRE(char_span.size() == 3);
+    REQUIRE(reinterpret_cast<const char*>(char_span.data()) == char_vec.data());
+
+    // std::string
+    auto str = std::string{"hello"};
+    auto str_span = byte_span{str};
+    REQUIRE(str_span.size() == 5);
+    REQUIRE(reinterpret_cast<const char*>(str_span.data()) == str.data());
+
+    // const containers to cbyte_span
+    auto const_uchar_vec = std::vector<unsigned char>{0x01, 0x02, 0x03};
+    auto const_span = cbyte_span{const_uchar_vec};
+    REQUIRE(const_span.size() == 3);
+    REQUIRE(reinterpret_cast<const unsigned char*>(const_span.data())
+            == const_uchar_vec.data());
+  }
+
+  SECTION("construction from non-byte containers") {
+    // std::vector<int>
+    auto int_vec = std::vector<int>{1, 2, 3, 4};
+    auto int_span = byte_span{int_vec};
+    REQUIRE(int_span.size() == sizeof(int) * 4);
+    REQUIRE(reinterpret_cast<const int*>(int_span.data()) == int_vec.data());
+
+    // const containers
+    auto const const_double_vec = std::vector<double>{1.0, 2.0};
+    auto double_span = cbyte_span{const_double_vec};
+    REQUIRE(double_span.size() == sizeof(double) * 2);
+    REQUIRE(reinterpret_cast<const double*>(double_span.data())
+            == const_double_vec.data());
+  }
+
+  SECTION("construction from std::span") {
+    auto vec = std::vector<int>{1, 2, 3, 4};
+    auto int_span = std::span{vec};
+    auto span_from_span = byte_span{int_span};
+    REQUIRE(span_from_span.size() == sizeof(int) * 4);
+    REQUIRE(reinterpret_cast<const int*>(span_from_span.data()) == vec.data());
+  }
+
+  SECTION("construction from std::as_bytes/as_writable_bytes") {
+    auto vec = std::vector<int>{1, 2, 3, 4};
+    auto bytes_span = std::as_bytes(std::span{vec});
+    auto span_from_bytes = cbyte_span{bytes_span};
+    REQUIRE(span_from_bytes.size() == sizeof(int) * 4);
+    REQUIRE(span_from_bytes.data() == bytes_span.data());
+
+    auto writable_span = std::as_writable_bytes(std::span{vec});
+    auto span_from_writable = byte_span{writable_span};
+    REQUIRE(span_from_writable.size() == sizeof(int) * 4);
+    REQUIRE(span_from_writable.data() == writable_span.data());
+  }
+
+  SECTION("borrowed range safety") {
+    // Temporary non-const range should not be allowed
+    STATIC_REQUIRE_FALSE(
+        std::is_constructible_v<byte_span, std::vector<char>&&>);
+
+    // Temporary const range to cbyte_span should be allowed
+    STATIC_REQUIRE(
+        std::is_constructible_v<cbyte_span, const std::vector<char>&&>);
+  }
+
+  SECTION("constness safety") {
+    auto const const_vec = std::vector<char>{'a', 'b', 'c'};
+
+    // const container to non-const span should fail
+    STATIC_REQUIRE_FALSE(
+        std::is_constructible_v<byte_span, const std::vector<char>&>);
+
+    // const container to const span should work
+    STATIC_REQUIRE(
+        std::is_constructible_v<cbyte_span, const std::vector<char>&>);
+  }
+}
+
 #pragma GCC diagnostic pop

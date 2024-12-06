@@ -3,15 +3,16 @@
 #include <concepts>
 #include <cstddef>
 #include <iterator>
+#include <ranges>
 #include <span>
 
 namespace lsm::utils {
 
 namespace detail {
 template <typename T>
-concept Byte = std::same_as<std::remove_cv_t<T>, char> ||
-               std::same_as<std::remove_cv_t<T>, unsigned char> ||
-               std::same_as<std::remove_cv_t<T>, std::byte>;
+concept Byte = std::same_as<std::remove_cv_t<T>, char>
+            || std::same_as<std::remove_cv_t<T>, unsigned char>
+            || std::same_as<std::remove_cv_t<T>, std::byte>;
 
 template <typename It>
 concept ByteContiguousIterator = requires {
@@ -24,6 +25,21 @@ concept NonByteContiguousIterator = requires {
   requires std::contiguous_iterator<It>;
   requires !Byte<std::iter_value_t<It>>;
   requires std::is_trivially_copyable_v<std::iter_value_t<It>>;
+};
+
+template <typename Range>
+concept ByteRange = requires {
+  requires std::ranges::contiguous_range<Range>;
+  requires std::ranges::sized_range<Range>;
+  requires Byte<std::ranges::range_value_t<Range>>;
+};
+
+template <typename Range>
+concept NonByteRange = requires {
+  requires std::ranges::contiguous_range<Range>;
+  requires std::ranges::sized_range<Range>;
+  requires !Byte<std::ranges::range_value_t<Range>>;
+  requires std::is_trivially_copyable_v<std::ranges::range_value_t<Range>>;
 };
 
 }  // namespace detail
@@ -55,18 +71,18 @@ class basic_byte_span {
   // iterator and size
   template <detail::ByteContiguousIterator It>
     requires(!std::is_const_v<
-                std::remove_reference_t<std::iter_reference_t<It>>>) ||
-            std::is_const_v<element_type>
+                std::remove_reference_t<std::iter_reference_t<It>>>)
+         || std::is_const_v<element_type>
   constexpr explicit(Extent != std::dynamic_extent)
       basic_byte_span(It first, size_type count) noexcept
       : span_{reinterpret_cast<pointer>(std::to_address(first)), count} {}
 
   // iterator and sentinel
   template <detail::ByteContiguousIterator It, std::sized_sentinel_for<It> End>
-    requires(((!std::is_const_v<
-                  std::remove_reference_t<std::iter_reference_t<It>>>) ||
-              std::is_const_v<element_type>) &&
-             (!std::is_convertible_v<End, size_type>))
+    requires(
+        ((!std::is_const_v<std::remove_reference_t<std::iter_reference_t<It>>>)
+         || std::is_const_v<element_type>)
+        && (!std::is_convertible_v<End, size_type>))
   constexpr explicit(Extent != std::dynamic_extent)
       basic_byte_span(It first, End last) noexcept(noexcept(last - first))
       : span_{reinterpret_cast<pointer>(std::to_address(first)),
@@ -76,8 +92,8 @@ class basic_byte_span {
   // iterator and size
   template <detail::NonByteContiguousIterator It>
     requires(!std::is_const_v<
-                std::remove_reference_t<std::iter_reference_t<It>>>) ||
-            std::is_const_v<element_type>
+                std::remove_reference_t<std::iter_reference_t<It>>>)
+         || std::is_const_v<element_type>
   constexpr explicit basic_byte_span(It first, size_type count) noexcept
       : span_(reinterpret_cast<pointer>(std::to_address(first)),
               count * sizeof(std::iter_value_t<It>)) {}
@@ -86,24 +102,61 @@ class basic_byte_span {
   template <detail::NonByteContiguousIterator It,
             std::sized_sentinel_for<It> End>
     requires((!std::is_const_v<
-                 std::remove_reference_t<std::iter_reference_t<It>>>) ||
-             std::is_const_v<element_type>) &&
-            (!std::is_convertible_v<End, size_type>)
+                 std::remove_reference_t<std::iter_reference_t<It>>>)
+             || std::is_const_v<element_type>)
+         && (!std::is_convertible_v<End, size_type>)
   constexpr explicit basic_byte_span(It first,
                                      End last) noexcept(noexcept(last - first))
       : span_{reinterpret_cast<pointer>(std::to_address(first)),
-              static_cast<size_type>(last - first) *
-                  sizeof(std::iter_value_t<It>)} {}
+              static_cast<size_type>(last - first)
+                  * sizeof(std::iter_value_t<It>)} {}
 
   // For void* - always explicit
   // iterator and size
   template <typename VoidType>
-    requires std::is_void_v<VoidType> &&
-             ((!std::is_const_v<VoidType>) || std::is_const_v<element_type>)
+    requires std::is_void_v<VoidType>
+          && ((!std::is_const_v<VoidType>) || std::is_const_v<element_type>)
   constexpr explicit basic_byte_span(VoidType* data, size_type size) noexcept
       : span_{reinterpret_cast<pointer>(data), size} {}
 
   // iterator and sentinel is not provided
+
+  // From ranges (byte types) - implicit conversion allowed
+  template <detail::ByteRange Range>
+    requires(!std::is_const_v<
+                 std::remove_reference_t<std::ranges::range_value_t<Range>>>
+             || std::is_const_v<element_type>)
+         && (!std::is_const_v<std::remove_reference_t<Range>>
+             || std::is_const_v<element_type>)
+         && (std::ranges::borrowed_range<Range>
+             || std::is_const_v<element_type>)
+  constexpr explicit(Extent != std::dynamic_extent)
+      // NOLINTNEXTLINE
+      basic_byte_span(Range&& range) noexcept
+      : basic_byte_span(std::ranges::data(range), std::ranges::size(range)) {
+    if constexpr (Extent != std::dynamic_extent) {
+      assert(std::ranges::size(range) == extent);
+    }
+  }
+
+  // From ranges (non-byte types) - explicit conversion required
+  template <detail::NonByteRange Range>
+    requires(!std::is_const_v<
+                 std::remove_reference_t<std::ranges::range_value_t<Range>>>
+             || std::is_const_v<element_type>)
+         && (!std::is_const_v<std::remove_reference_t<Range>>
+             || std::is_const_v<element_type>)
+         && (std::ranges::borrowed_range<Range>
+             || std::is_const_v<element_type>)
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
+  constexpr explicit basic_byte_span(Range&& range) noexcept
+      : basic_byte_span(std::ranges::data(range), std::ranges::size(range)) {
+    if constexpr (Extent != std::dynamic_extent) {
+      assert(std::ranges::size(range)
+                 * sizeof(std::ranges::range_value_t<Range>)
+             == extent);
+    }
+  }
 
   constexpr auto data() const noexcept { return span_.data(); }
   constexpr auto size() const noexcept { return span_.size(); }
