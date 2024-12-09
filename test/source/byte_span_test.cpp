@@ -17,7 +17,7 @@ using lsm::utils::byte_span;
 using lsm::utils::byte_view;
 using lsm::utils::cbyte_span;
 using lsm::utils::cbyte_view;
-using lsm::utils::detail::ConstConvertible;
+using lsm::utils::detail::const_convertible;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -51,23 +51,23 @@ struct type_pair {
   (type_pair<std::byte, std::byte>)
 // clang-format on
 
-TEMPLATE_TEST_CASE("ConstConvertible cross-type checks - should pass",
+TEMPLATE_TEST_CASE("const_convertible cross-type checks - should pass",
                    "[concept][template]",
                    BYTE_LIKE_PAIRS) {
   using from = typename TestType::a;
   using to = typename TestType::b;
-  STATIC_REQUIRE(ConstConvertible<from&, to&>);
-  STATIC_REQUIRE(ConstConvertible<from&, const to&>);
-  STATIC_REQUIRE(ConstConvertible<const from&, const to&>);
-  STATIC_REQUIRE(ConstConvertible<from, to>);
-  STATIC_REQUIRE(ConstConvertible<from, const to>);
-  STATIC_REQUIRE(ConstConvertible<const from, const to>);
-  STATIC_REQUIRE(ConstConvertible<from&, to>);
-  STATIC_REQUIRE(ConstConvertible<from&, const to>);
-  STATIC_REQUIRE(ConstConvertible<const from&, const to>);
-  STATIC_REQUIRE(ConstConvertible<from, to&>);
-  STATIC_REQUIRE(ConstConvertible<from, const to&>);
-  STATIC_REQUIRE(ConstConvertible<const from, const to&>);
+  STATIC_REQUIRE(const_convertible<from&, to&>);
+  STATIC_REQUIRE(const_convertible<from&, const to&>);
+  STATIC_REQUIRE(const_convertible<const from&, const to&>);
+  STATIC_REQUIRE(const_convertible<from, to>);
+  STATIC_REQUIRE(const_convertible<from, const to>);
+  STATIC_REQUIRE(const_convertible<const from, const to>);
+  STATIC_REQUIRE(const_convertible<from&, to>);
+  STATIC_REQUIRE(const_convertible<from&, const to>);
+  STATIC_REQUIRE(const_convertible<const from&, const to>);
+  STATIC_REQUIRE(const_convertible<from, to&>);
+  STATIC_REQUIRE(const_convertible<from, const to&>);
+  STATIC_REQUIRE(const_convertible<const from, const to&>);
 }
 
 TEST_CASE("basic_byte_span default constructor", "[basic_byte_span]") {

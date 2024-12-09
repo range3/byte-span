@@ -62,6 +62,8 @@ CheckOptions:
     value: 'lower_case'
   - key: 'readability-identifier-naming.ClassMethodCase'
     value: 'lower_case'
+  - key: 'readability-identifier-naming.ConceptCase'
+    value: 'lower_case'
   - key: 'readability-identifier-naming.ConstantCase'
     value: 'lower_case'
   - key: 'readability-identifier-naming.ConstantMemberCase'
