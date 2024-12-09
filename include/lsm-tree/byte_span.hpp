@@ -54,7 +54,18 @@ concept const_safe_range =
 template <typename T>
 concept is_basic_byte_span = requires {
   typename T::element_type;
+  { T::extent } -> std::convertible_to<std::size_t>;
 } && std::same_as<T, basic_byte_span<typename T::element_type, T::extent>>;
+
+template <typename T>
+concept is_std_array =
+    requires {
+      typename T::value_type;
+      std::tuple_size<T>::value;
+    }
+    && std::same_as<
+        T,
+        std::array<typename T::value_type, std::tuple_size<T>::value>>;
 
 }  // namespace detail
 
@@ -105,7 +116,7 @@ class basic_byte_span {
       : span_{reinterpret_cast<pointer>(std::to_address(first)),
               count * sizeof(std::iter_value_t<It>)} {}
 
-  // For void* - always explicit
+  // From void* - always explicit
   // void* and size
   template <typename VoidType>
     requires std::is_void_v<VoidType>
@@ -113,7 +124,7 @@ class basic_byte_span {
   constexpr explicit basic_byte_span(VoidType* data, size_type size) noexcept
       : span_{reinterpret_cast<pointer>(data), size} {}
 
-  // For c-style arrays
+  // From c-style arrays
   template <typename T, size_t ArrayExtent>
     requires std::is_trivially_copyable_v<T>
           && (Extent == dynamic_extent || Extent == ArrayExtent * sizeof(T))
@@ -123,7 +134,7 @@ class basic_byte_span {
       basic_byte_span(T (&arr)[ArrayExtent]) noexcept
       : span_{reinterpret_cast<pointer>(arr), ArrayExtent * sizeof(T)} {}
 
-  // std::array
+  // From std::array
   template <typename T, size_t ArrayExtent>
     requires std::is_trivially_copyable_v<T>
           && (Extent == dynamic_extent || Extent == ArrayExtent * sizeof(T))
@@ -133,7 +144,7 @@ class basic_byte_span {
       basic_byte_span(std::array<T, ArrayExtent>& arr) noexcept
       : span_{reinterpret_cast<pointer>(arr.data()), ArrayExtent * sizeof(T)} {}
 
-  // const std::array
+  // From const std::array
   template <typename T, size_t ArrayExtent>
     requires std::is_trivially_copyable_v<T>
           && (Extent == dynamic_extent || Extent == ArrayExtent * sizeof(T))
@@ -142,6 +153,39 @@ class basic_byte_span {
       // NOLINTNEXTLINE
       basic_byte_span(const std::array<T, ArrayExtent>& arr) noexcept
       : span_{reinterpret_cast<pointer>(arr.data()), ArrayExtent * sizeof(T)} {}
+
+  // From Ranges
+  template <typename Range>
+    requires(!detail::is_basic_byte_span<std::remove_cvref_t<Range>>)
+         && (!detail::is_std_array<std::remove_cvref_t<Range>>)
+         && (!std::is_array_v<std::remove_cvref_t<Range>>)
+         && std::ranges::contiguous_range<Range>
+         && std::ranges::sized_range<Range>
+         && (std::ranges::borrowed_range<Range>
+             || std::is_const_v<element_type>)
+         && (detail::const_convertible<std::ranges::range_reference_t<Range>,
+                                       element_type&>)
+         && std::is_trivially_copyable_v<std::ranges::range_value_t<Range>>
+  constexpr explicit(Extent != dynamic_extent
+                     || !detail::byte_like<std::ranges::range_value_t<Range>>)
+      // NOLINTNEXTLINE
+      basic_byte_span(Range&& range) noexcept(
+          noexcept(std::ranges::data(range))
+          && noexcept(std::ranges::size(range)))
+      : span_{reinterpret_cast<pointer>(std::ranges::data(range)),
+              detail::byte_like<std::ranges::range_value_t<Range>>
+                  ? std::ranges::size(range)
+                  : std::ranges::size(range)
+                        * sizeof(std::ranges::range_value_t<Range>)} {
+    if constexpr (Extent != dynamic_extent) {
+      auto const expected_size =
+          detail::byte_like<std::ranges::range_value_t<Range>>
+              ? std::ranges::size(range)
+              : std::ranges::size(range)
+                    * sizeof(std::ranges::range_value_t<Range>);
+      assert(expected_size == Extent);
+    }
+  }
 
   constexpr auto data() const noexcept { return span_.data(); }
   constexpr auto size() const noexcept { return span_.size(); }
