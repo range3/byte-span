@@ -67,6 +67,15 @@ concept is_std_array =
         T,
         std::array<typename T::value_type, std::tuple_size<T>::value>>;
 
+template <typename T>
+constexpr auto calculate_size(size_t count) noexcept -> size_t {
+  if constexpr (byte_like<T>) {
+    return count;
+  } else {
+    return count * sizeof(T);
+  }
+}
+
 }  // namespace detail
 
 template <typename B, size_t Extent = dynamic_extent>
@@ -103,8 +112,8 @@ class basic_byte_span {
                      || !detail::byte_like<std::iter_value_t<It>>)
       basic_byte_span(It first, End last) noexcept(noexcept(last - first))
       : span_{reinterpret_cast<pointer>(std::to_address(first)),
-              static_cast<size_type>(last - first)
-                  * sizeof(std::iter_value_t<It>)} {}
+              detail::calculate_size<std::iter_value_t<It>>(
+                  static_cast<size_type>(last - first))} {}
 
   // From iterator and count
   template <std::contiguous_iterator It>
@@ -114,7 +123,7 @@ class basic_byte_span {
                      || !detail::byte_like<std::iter_value_t<It>>)
       basic_byte_span(It first, size_type count) noexcept
       : span_{reinterpret_cast<pointer>(std::to_address(first)),
-              count * sizeof(std::iter_value_t<It>)} {}
+              detail::calculate_size<std::iter_value_t<It>>(count)} {}
 
   // From void* - always explicit
   // void* and size
@@ -132,7 +141,8 @@ class basic_byte_span {
   constexpr explicit(!detail::byte_like<T>)
       // NOLINTNEXTLINE
       basic_byte_span(T (&arr)[ArrayExtent]) noexcept
-      : span_{reinterpret_cast<pointer>(arr), ArrayExtent * sizeof(T)} {}
+      : span_{reinterpret_cast<pointer>(arr),
+              detail::calculate_size<T>(ArrayExtent)} {}
 
   // From std::array
   template <typename T, size_t ArrayExtent>
@@ -142,7 +152,8 @@ class basic_byte_span {
   constexpr explicit(!detail::byte_like<T>)
       // NOLINTNEXTLINE
       basic_byte_span(std::array<T, ArrayExtent>& arr) noexcept
-      : span_{reinterpret_cast<pointer>(arr.data()), ArrayExtent * sizeof(T)} {}
+      : span_{reinterpret_cast<pointer>(arr.data()),
+              detail::calculate_size<T>(ArrayExtent)} {}
 
   // From const std::array
   template <typename T, size_t ArrayExtent>
@@ -152,7 +163,8 @@ class basic_byte_span {
   constexpr explicit(!detail::byte_like<T>)
       // NOLINTNEXTLINE
       basic_byte_span(const std::array<T, ArrayExtent>& arr) noexcept
-      : span_{reinterpret_cast<pointer>(arr.data()), ArrayExtent * sizeof(T)} {}
+      : span_{reinterpret_cast<pointer>(arr.data()),
+              detail::calculate_size<T>(ArrayExtent)} {}
 
   // From Ranges
   template <typename Range>
@@ -173,16 +185,12 @@ class basic_byte_span {
           noexcept(std::ranges::data(range))
           && noexcept(std::ranges::size(range)))
       : span_{reinterpret_cast<pointer>(std::ranges::data(range)),
-              detail::byte_like<std::ranges::range_value_t<Range>>
-                  ? std::ranges::size(range)
-                  : std::ranges::size(range)
-                        * sizeof(std::ranges::range_value_t<Range>)} {
+              detail::calculate_size<std::ranges::range_value_t<Range>>(
+                  std::ranges::size(range))} {
     if constexpr (Extent != dynamic_extent) {
       auto const expected_size =
-          detail::byte_like<std::ranges::range_value_t<Range>>
-              ? std::ranges::size(range)
-              : std::ranges::size(range)
-                    * sizeof(std::ranges::range_value_t<Range>);
+          detail::calculate_size<std::ranges::range_value_t<Range>>(
+              std::ranges::size(range));
       assert(expected_size == Extent);
     }
   }
