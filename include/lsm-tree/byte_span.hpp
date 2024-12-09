@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <concepts>
 #include <cstddef>
 #include <iostream>
@@ -49,7 +50,9 @@ concept ConstSafeRange =
 
 }  // namespace detail
 
-template <detail::Byte B, size_t Extent = std::dynamic_extent>
+using std::dynamic_extent;
+
+template <detail::Byte B, size_t Extent = dynamic_extent>
 class basic_byte_span {
  public:
   using span_type = std::span<B, Extent>;
@@ -69,13 +72,14 @@ class basic_byte_span {
   static constexpr size_t extent = Extent;
 
   constexpr basic_byte_span() noexcept
-    requires(Extent == std::dynamic_extent || Extent == 0)
+    requires(Extent == dynamic_extent || Extent == 0)
       : span_{} {}
 
   // From iterator and sentinel
   template <std::contiguous_iterator It, std::sized_sentinel_for<It> End>
     requires std::is_trivially_copyable_v<std::iter_value_t<It>>
-  constexpr explicit(Extent != std::dynamic_extent
+          && detail::ConstConvertible<std::iter_reference_t<It>, element_type&>
+  constexpr explicit(Extent != dynamic_extent
                      || !detail::ByteLike<std::iter_value_t<It>>)
       basic_byte_span(It first, End last) noexcept(noexcept(last - first))
       : span_{reinterpret_cast<pointer>(std::to_address(first)),
@@ -85,7 +89,8 @@ class basic_byte_span {
   // From iterator and count
   template <std::contiguous_iterator It>
     requires std::is_trivially_copyable_v<std::iter_value_t<It>>
-  constexpr explicit(Extent != std::dynamic_extent
+          && detail::ConstConvertible<std::iter_reference_t<It>, element_type&>
+  constexpr explicit(Extent != dynamic_extent
                      || !detail::ByteLike<std::iter_value_t<It>>)
       basic_byte_span(It first, size_type count) noexcept
       : span_{reinterpret_cast<pointer>(std::to_address(first)),
@@ -102,13 +107,32 @@ class basic_byte_span {
   // For c-style arrays
   template <typename T, size_t ArrayExtent>
     requires std::is_trivially_copyable_v<T>
-          && (Extent == std::dynamic_extent
-              || Extent == ArrayExtent * sizeof(T))
+          && (Extent == dynamic_extent || Extent == ArrayExtent * sizeof(T))
           && detail::ConstConvertible<T, element_type>
   constexpr explicit(!detail::ByteLike<T>)
       // NOLINTNEXTLINE
       basic_byte_span(T (&arr)[ArrayExtent]) noexcept
       : span_{reinterpret_cast<pointer>(arr), ArrayExtent * sizeof(T)} {}
+
+  // std::array
+  template <typename T, size_t ArrayExtent>
+    requires std::is_trivially_copyable_v<T>
+          && (Extent == dynamic_extent || Extent == ArrayExtent * sizeof(T))
+          && detail::ConstConvertible<T, element_type>
+  constexpr explicit(!detail::ByteLike<T>)
+      // NOLINTNEXTLINE
+      basic_byte_span(std::array<T, ArrayExtent>& arr) noexcept
+      : span_{reinterpret_cast<pointer>(arr.data()), ArrayExtent * sizeof(T)} {}
+
+  // const std::array
+  template <typename T, size_t ArrayExtent>
+    requires std::is_trivially_copyable_v<T>
+          && (Extent == dynamic_extent || Extent == ArrayExtent * sizeof(T))
+          && detail::ConstConvertible<const T, element_type>
+  constexpr explicit(!detail::ByteLike<T>)
+      // NOLINTNEXTLINE
+      basic_byte_span(const std::array<T, ArrayExtent>& arr) noexcept
+      : span_{reinterpret_cast<pointer>(arr.data()), ArrayExtent * sizeof(T)} {}
 
   constexpr auto data() const noexcept { return span_.data(); }
   constexpr auto size() const noexcept { return span_.size(); }
@@ -155,10 +179,24 @@ template <typename T, size_t ArrayExtent>
 basic_byte_span(T (&)[ArrayExtent])  // NOLINT
     ->basic_byte_span<std::byte, ArrayExtent * sizeof(T)>;
 
+template <typename T, size_t ArrayExtent>
+  requires(!std::is_const_v<T>)
+basic_byte_span(std::array<T, ArrayExtent>&)
+    -> basic_byte_span<std::byte, ArrayExtent * sizeof(T)>;
+
+template <typename T, size_t ArrayExtent>
+  requires(std::is_const_v<T>)
+basic_byte_span(std::array<T, ArrayExtent>&)
+    -> basic_byte_span<const std::byte, ArrayExtent * sizeof(T)>;
+
+template <typename T, size_t ArrayExtent>
+basic_byte_span(const std::array<T, ArrayExtent>&)
+    -> basic_byte_span<const std::byte, ArrayExtent * sizeof(T)>;
+
 // type aliases
-template <std::size_t Extent = std::dynamic_extent>
+template <std::size_t Extent = dynamic_extent>
 using byte_span = basic_byte_span<std::byte, Extent>;
-template <std::size_t Extent = std::dynamic_extent>
+template <std::size_t Extent = dynamic_extent>
 using cbyte_span = basic_byte_span<const std::byte, Extent>;
 using byte_view = byte_span<>;
 using cbyte_view = cbyte_span<>;
