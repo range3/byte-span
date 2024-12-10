@@ -1,14 +1,10 @@
 #include <array>
 #include <cstddef>
-// #include <cstdint>
-// #include <span>
 #include <type_traits>
-// #include <utility>
 #include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
-// #include <catch2/generators/catch_generators_all.hpp>
 
 #include "lsm-tree/byte_span.hpp"
 
@@ -17,6 +13,7 @@ using lsm::utils::byte_span;
 using lsm::utils::byte_view;
 using lsm::utils::cbyte_span;
 using lsm::utils::cbyte_view;
+using lsm::utils::detail::byte_like;
 using lsm::utils::detail::const_convertible;
 
 #pragma GCC diagnostic push
@@ -414,5 +411,6 @@ TEST_CASE("basic_byte_span construction from std::array - size checks",
     REQUIRE(span.empty());
   }
 }
+
 
 #pragma GCC diagnostic pop
