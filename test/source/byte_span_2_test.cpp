@@ -380,14 +380,16 @@ TEST_CASE("byte_span conversion utilities", "[byte_span][span]") {
     REQUIRE(buf.write(byte_span{text.data(), text.size()}) == text.size());
     REQUIRE(as_sv(buf.view()) == text);
 
-    struct point {
+    struct alignas(4) point {
       float x, y;
     };
     auto p = point{1.0F, 2.0F};
 
+    buf.write(std::array<std::byte, 3>{});  // padding
+
     REQUIRE(buf.write(byte_span{&p, 1}) == sizeof(p));
     const auto& result =
-        as_value<point>(buf.view().subspan(text.size(), sizeof(p)));
+        as_value<point>(buf.view().subspan(text.size() + 3, sizeof(p)));
     REQUIRE(result.x == Catch::Approx(p.x));
     REQUIRE(result.y == Catch::Approx(p.y));
   }
