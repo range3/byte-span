@@ -76,8 +76,10 @@ class byte_span {
   using const_reference = typename span_type::const_reference;
   using iterator = typename span_type::iterator;
   using reverse_iterator = typename span_type::reverse_iterator;
-  // using const_iterator = typename span_type::const_iterator;
-  // using const_reverse_iterator = typename span_type::const_reverse_iterator;
+#if __cplusplus > 202002L
+  using const_iterator = typename span_type::const_iterator;
+  using const_reverse_iterator = typename span_type::const_reverse_iterator;
+#endif
 
   static constexpr size_t extent = Extent;
 
@@ -213,15 +215,134 @@ class byte_span {
     }
   }
 
-  constexpr auto data() const noexcept { return span_.data(); }
-  constexpr auto size() const noexcept { return span_.size(); }
-  constexpr auto size_bytes() const noexcept { return span_.size_bytes(); }
-  constexpr auto empty() const noexcept { return span_.empty(); }
+  [[nodiscard]]
+  constexpr auto data() const noexcept {
+    return span_.data();
+  }
+  [[nodiscard]]
+  constexpr auto size() const noexcept {
+    return span_.size();
+  }
+  [[nodiscard]]
+  constexpr auto size_bytes() const noexcept {
+    return span_.size_bytes();
+  }
+  [[nodiscard]]
+  constexpr auto empty() const noexcept {
+    return span_.empty();
+  }
+  [[nodiscard]]
+  constexpr auto front() const noexcept -> reference {
+    assert(!empty());
+    return span_.front();
+  }
+
+  [[nodiscard]]
+  constexpr auto back() const noexcept -> reference {
+    assert(!empty());
+    return span_.back();
+  }
+
+  [[nodiscard]]
+  constexpr auto operator[](size_type idx) const noexcept -> reference {
+    assert(idx < size());
+    return span_[idx];
+  }
+
+  [[nodiscard]]
+  constexpr auto begin() const noexcept -> iterator {
+    return span_.begin();
+  }
+
+  [[nodiscard]]
+  constexpr auto end() const noexcept -> iterator {
+    return span_.end();
+  }
+
+  [[nodiscard]]
+  constexpr auto rbegin() const noexcept -> reverse_iterator {
+    return span_.rbegin();
+  }
+
+  [[nodiscard]]
+  constexpr auto rend() const noexcept -> reverse_iterator {
+    return span_.rend();
+  }
+
+#if __cplusplus > 202002L
+  // C++23
+  [[nodiscard]]
+  constexpr auto cbegin() const noexcept -> const_iterator {
+    return span_.cbegin();
+  }
+
+  [[nodiscard]]
+  constexpr auto cend() const noexcept -> const_iterator {
+    return span_.cend();
+  }
+
+  [[nodiscard]]
+  constexpr auto crbegin() const noexcept -> const_reverse_iterator {
+    return span_.crbegin();
+  }
+
+  [[nodiscard]]
+  constexpr auto crend() const noexcept -> const_reverse_iterator {
+    return span_.crend();
+  }
+#endif
+
+  template <size_t Count>
+  [[nodiscard]]
+  constexpr auto first() const noexcept {
+    auto s = span_.template first<Count>();
+    return byte_span<element_type, Count>{s};
+  }
+
+  [[nodiscard]]
+  constexpr auto first(size_type count) const noexcept {
+    return byte_span{span_.first(count)};
+  }
+
+  template <size_t Count>
+  [[nodiscard]]
+  constexpr auto last() const noexcept {
+    auto s = span_.template last<Count>();
+    return byte_span<element_type, Count>{s};
+  }
+
+  [[nodiscard]]
+  constexpr auto last(size_type count) const noexcept {
+    return byte_span{span_.last(count)};
+  }
+
+  template <size_t Offset, size_t Count = dynamic_extent>
+  [[nodiscard]]
+  constexpr auto subspan() const noexcept {
+    auto s = span_.template subspan<Offset, Count>();
+    return byte_span{s};
+  }
+
+  [[nodiscard]]
+  constexpr auto subspan(size_type offset,
+                         size_type count = dynamic_extent) const noexcept {
+    return byte_span{span_.subspan(offset, count)};
+  }
+
+  constexpr void swap(byte_span& other) noexcept {
+    std::swap(span_, other.span_);
+  }
 
  private:
   // NOLINTNEXTLINE(cppcoreguidelines-use-default-member-init,modernize-use-default-member-init)
   span_type span_;
 };
+
+template <typename B, size_t Extent>
+constexpr void swap(byte_span<B, Extent>& lhs,
+                    byte_span<B, Extent>& rhs) noexcept {
+  lhs.swap(rhs);
+}
 
 // deduction guides
 // From iterator and count
@@ -290,3 +411,12 @@ using byte_view = byte_span<std::byte>;
 using cbyte_view = byte_span<const std::byte>;
 
 }  // namespace lsm::utils
+
+// Opt-in to borrowed_range concept
+template <typename T, std::size_t N>
+constexpr bool std::ranges::enable_borrowed_range<lsm::utils::byte_span<T, N>> =
+    true;
+
+// Opt-in to view concept
+template <typename B, size_t N>
+constexpr bool std::ranges::enable_view<lsm::utils::byte_span<B, N>> = true;
