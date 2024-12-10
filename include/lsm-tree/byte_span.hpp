@@ -218,19 +218,6 @@ class byte_span {
     }
   }
 
-  // From std::basic_string_view
-  template <typename CharT, typename Traits>
-    requires std::is_const_v<std::remove_reference_t<element_type>>
-  constexpr explicit(Extent != dynamic_extent)
-      // NOLINTNEXTLINE
-      byte_span(const std::basic_string_view<CharT, Traits>& sv) noexcept
-      : span_{reinterpret_cast<const_pointer>(sv.data()),
-              sv.size() * sizeof(CharT)} {
-    if constexpr (Extent != dynamic_extent) {
-      assert(sv.size() == Extent);
-    }
-  }
-
   // From byte_span
   template <typename OtherByte, size_t OtherExtent>
     requires(Extent == dynamic_extent || OtherExtent == dynamic_extent
@@ -308,10 +295,6 @@ byte_span(std::span<ElementType, Extent>)
                                     std::byte>,
                  Extent == dynamic_extent ? dynamic_extent
                                           : Extent * sizeof(ElementType)>;
-
-// From std::basic_string_view
-template <typename CharT, typename Traits>
-byte_span(std::basic_string_view<CharT, Traits>) -> byte_span<const std::byte>;
 
 // From contiguous_range
 template <std::ranges::contiguous_range Range>
