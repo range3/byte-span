@@ -3,11 +3,9 @@
 #include <array>
 #include <concepts>
 #include <cstddef>
-#include <iostream>
 #include <iterator>
 #include <ranges>
 #include <span>
-#include <string>
 #include <type_traits>
 
 namespace lsm::utils {
@@ -27,29 +25,6 @@ concept byte_like = std::same_as<std::remove_cv_t<T>, char>
 template <typename From, typename To>
 concept const_convertible = std::is_const_v<std::remove_reference_t<To>>
                          || !std::is_const_v<std::remove_reference_t<From>>;
-
-template <typename Range>
-concept byte_range = requires {
-  requires std::ranges::contiguous_range<Range>;
-  requires std::ranges::sized_range<Range>;
-  requires byte_like<std::ranges::range_value_t<Range>>;
-};
-
-template <typename Range>
-concept non_byte_range = requires {
-  requires std::ranges::contiguous_range<Range>;
-  requires std::ranges::sized_range<Range>;
-  requires !byte_like<std::ranges::range_value_t<Range>>;
-  requires std::is_trivially_copyable_v<std::ranges::range_value_t<Range>>;
-};
-
-template <typename Range, typename ElementType>
-concept const_safe_range =
-    std::is_const_v<ElementType>
-    || ((!std::is_const_v<
-            std::remove_reference_t<std::ranges::range_value_t<Range>>>)
-        && (!std::is_const_v<std::remove_reference_t<Range>>)
-        && std::ranges::borrowed_range<Range>);
 
 template <typename T>
 concept is_byte_span = requires {
@@ -105,6 +80,12 @@ class byte_span {
   // using const_reverse_iterator = typename span_type::const_reverse_iterator;
 
   static constexpr size_t extent = Extent;
+
+  constexpr byte_span(const byte_span&) noexcept = default;
+  constexpr auto operator=(const byte_span&) noexcept -> byte_span& = default;
+  constexpr byte_span(byte_span&&) noexcept = default;
+  constexpr auto operator=(byte_span&&) noexcept -> byte_span& = default;
+  ~byte_span() noexcept = default;
 
   constexpr byte_span() noexcept
     requires(Extent == dynamic_extent || Extent == 0)
