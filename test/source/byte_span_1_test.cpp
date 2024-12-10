@@ -90,24 +90,26 @@ TEMPLATE_TEST_CASE("byte_span construction",
     auto const span = byte_span{vec.begin(), vec.size()};
     REQUIRE(span.size() == vec.size());
     REQUIRE(span.data()
-            == reinterpret_cast<decltype(span)::pointer>(vec.data()));
+            == reinterpret_cast<typename decltype(span)::pointer>(vec.data()));
 
     auto const cspan = byte_span{cvec.begin(), cvec.size()};
     REQUIRE(cspan.size() == cvec.size());
-    REQUIRE(cspan.data()
-            == reinterpret_cast<decltype(cspan)::pointer>(cvec.data()));
+    REQUIRE(
+        cspan.data()
+        == reinterpret_cast<typename decltype(cspan)::pointer>(cvec.data()));
   }
 
   SECTION("from ByteLikeContiguousIterator - iterator and sentinel") {
     auto const span = byte_span{vec.begin(), vec.end()};
     REQUIRE(span.size() == vec.size());
     REQUIRE(span.data()
-            == reinterpret_cast<decltype(span)::pointer>(vec.data()));
+            == reinterpret_cast<typename decltype(span)::pointer>(vec.data()));
 
     auto const cspan = byte_span{cvec.begin(), cvec.end()};
     REQUIRE(cspan.size() == cvec.size());
-    REQUIRE(cspan.data()
-            == reinterpret_cast<decltype(cspan)::pointer>(cvec.data()));
+    REQUIRE(
+        cspan.data()
+        == reinterpret_cast<typename decltype(cspan)::pointer>(cvec.data()));
   }
 }
 
@@ -124,24 +126,26 @@ TEMPLATE_TEST_CASE("byte_span construction from non-byte types",
     auto const span = byte_span{vec.begin(), vec.size()};
     REQUIRE(span.size() == vec.size() * sizeof(t));
     REQUIRE(span.data()
-            == reinterpret_cast<decltype(span)::pointer>(vec.data()));
+            == reinterpret_cast<typename decltype(span)::pointer>(vec.data()));
 
     auto const cspan = byte_span{cvec.begin(), cvec.size()};
     REQUIRE(cspan.size() == cvec.size() * sizeof(t));
-    REQUIRE(cspan.data()
-            == reinterpret_cast<decltype(cspan)::pointer>(cvec.data()));
+    REQUIRE(
+        cspan.data()
+        == reinterpret_cast<typename decltype(cspan)::pointer>(cvec.data()));
   }
 
   SECTION("from NonByteLikeContiguousIterator - iterator and sentinel") {
     auto const span = byte_span{vec.begin(), vec.end()};
     REQUIRE(span.size() == vec.size() * sizeof(t));
     REQUIRE(span.data()
-            == reinterpret_cast<decltype(span)::pointer>(vec.data()));
+            == reinterpret_cast<typename decltype(span)::pointer>(vec.data()));
 
     auto const cspan = byte_span{cvec.begin(), cvec.end()};
     REQUIRE(cspan.size() == cvec.size() * sizeof(t));
-    REQUIRE(cspan.data()
-            == reinterpret_cast<decltype(cspan)::pointer>(cvec.data()));
+    REQUIRE(
+        cspan.data()
+        == reinterpret_cast<typename decltype(cspan)::pointer>(cvec.data()));
   }
 }
 
