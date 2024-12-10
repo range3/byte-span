@@ -4,8 +4,10 @@
 #include <concepts>
 #include <cstddef>
 #include <iterator>
+#include <new>
 #include <ranges>
 #include <span>
+#include <string_view>
 #include <type_traits>
 
 namespace lsm::utils {
@@ -338,10 +340,67 @@ class byte_span {
   span_type span_;
 };
 
+// non-member functions
 template <typename B, size_t Extent>
 constexpr void swap(byte_span<B, Extent>& lhs,
                     byte_span<B, Extent>& rhs) noexcept {
   lhs.swap(rhs);
+}
+
+template <typename B, size_t N>
+constexpr auto as_sv(byte_span<B, N> bytes) noexcept -> std::string_view {
+  return {reinterpret_cast<const char*>(bytes.data()), bytes.size()};
+}
+
+template <typename T, typename B, size_t N>
+  requires std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>
+            && (!std::is_void_v<T>) && (N == dynamic_extent || N >= sizeof(T))
+constexpr auto as_value(byte_span<B, N> bytes) noexcept -> const T& {
+  assert(bytes.size() >= sizeof(T));
+  return *std::launder(reinterpret_cast<const T*>(bytes.data()));
+}
+
+// byte_span -> std::span<std::byte>
+template <typename B, size_t N>
+  requires(!std::is_const_v<std::remove_reference_t<B>>)
+constexpr auto as_writable_bytes(byte_span<B, N> bytes) noexcept
+    -> std::span<std::byte, N> {
+  return std::span<std::byte, N>{bytes.data(), bytes.size()};
+}
+
+// byte_span -> std::span<const std::byte>
+template <typename B, size_t N>
+constexpr auto as_bytes(byte_span<B, N> bytes) noexcept
+    -> std::span<const std::byte, N> {
+  return std::span<const std::byte, N>{bytes.data(), bytes.size()};
+}
+
+// byte_span -> std::span<T> (writable)
+template <typename T, typename B, size_t N>
+  requires std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>
+            && (!std::is_const_v<std::remove_reference_t<B>>)
+            && (!std::is_const_v<std::remove_reference_t<T>>)
+            && (N == dynamic_extent || (N % sizeof(T) == 0))
+constexpr auto as_writable_span(byte_span<B, N> bytes) noexcept
+    -> std::span<T, N == dynamic_extent ? dynamic_extent : N / sizeof(T)> {
+  assert(bytes.size() % sizeof(T) == 0);
+  return std::span<T, (N == dynamic_extent ? dynamic_extent : N / sizeof(T))>{
+      std::launder(reinterpret_cast<T*>(bytes.data())),
+      bytes.size() / sizeof(T)};
+}
+
+// byte_span -> std::span<const T>
+template <typename T, typename B, size_t N>
+  requires std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>
+            && (N == dynamic_extent || (N % sizeof(T) == 0))
+constexpr auto as_span(byte_span<B, N> bytes) noexcept
+    -> std::span<const T,
+                 N == dynamic_extent ? dynamic_extent : N / sizeof(T)> {
+  assert(bytes.size() % sizeof(T) == 0);
+  return std::span<const T,
+                   (N == dynamic_extent ? dynamic_extent : N / sizeof(T))>{
+      std::launder(reinterpret_cast<const T*>(bytes.data())),
+      bytes.size() / sizeof(T)};
 }
 
 // deduction guides

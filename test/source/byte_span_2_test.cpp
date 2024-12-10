@@ -1,23 +1,31 @@
+#include <algorithm>
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <span>
 #include <string_view>
 #include <type_traits>
 #include <vector>
 
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
-// #include <catch2/generators/catch_generators_all.hpp>
 
 #include "lsm-tree/byte_span.hpp"
 
-// NOLINTBEGIN(misc-const-correctness)
+// NOLINTBEGIN(misc-const-correctness,clang-analyzer-deadcode.DeadStores)
 
+using lsm::utils::as_bytes;
+using lsm::utils::as_span;
+using lsm::utils::as_sv;
+using lsm::utils::as_writable_bytes;
+using lsm::utils::as_writable_span;
 using lsm::utils::byte_span;
 using lsm::utils::byte_view;
 using lsm::utils::cbyte_view;
 using lsm::utils::detail::byte_like;
 using lsm::utils::detail::const_convertible;
+using namespace std::string_view_literals;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -247,7 +255,7 @@ TEMPLATE_TEST_CASE("byte_span construction from various string_view types",
                    char8_t,
                    char16_t,
                    char32_t) {
-  using t = TestType; 
+  using t = TestType;
   using sv_t = std::basic_string_view<t>;
   std::array<t, 3> arr = {t{65}, t{66}, t{67}};  // "ABC"
   sv_t sv{arr.data(), arr.size()};
@@ -270,8 +278,6 @@ TEMPLATE_TEST_CASE("byte_span construction from various string_view types",
 
 TEST_CASE("byte_span construction from string_view literals",
           "[byte_span][string_view]") {
-  using namespace std::string_view_literals;
-
   SECTION("dynamic extent with various literals") {
     auto bs1 = byte_span{"Hello"sv};
     auto bs2 = byte_span{L"Hello"sv};
@@ -293,6 +299,119 @@ TEST_CASE("byte_span construction from string_view literals",
   }
 }
 
+class buffer {
+  static constexpr size_t size = 256;
+  std::array<std::byte, size> data_{};
+  size_t used_{};
+
+ public:
+  auto write(cbyte_view src) -> size_t {
+    auto count = std::min(src.size(), size - used_);
+    std::copy_n(src.begin(), count, data_.begin() + used_);
+    used_ += count;
+    return count;
+  }
+
+  auto read(byte_view dest) const -> size_t {
+    auto count = std::min(dest.size(), used_);
+    std::copy_n(data_.begin(), count, dest.data());
+    return count;
+  }
+
+  auto view() const -> cbyte_view { return {data_.data(), used_}; }
+};
+
+// NOLINTNEXTLINE
+TEST_CASE("byte_span conversion utilities", "[byte_span][span]") {
+  SECTION("byte_span to std::span<(const) std::byte>") {
+    std::array<std::byte, 12> data{};
+    auto bytes = byte_span{data};
+
+    auto writable = as_writable_bytes(bytes);
+    static_assert(std::is_same_v<decltype(writable), std::span<std::byte, 12>>);
+
+    auto readonly = as_bytes(bytes);
+    static_assert(
+        std::is_same_v<decltype(readonly), std::span<const std::byte, 12>>);
+
+    // Const byte_span can only be converted to const bytes
+    const auto const_bytes = byte_span{data};
+    auto const_view = as_bytes(const_bytes);
+    static_assert(
+        std::is_same_v<decltype(const_view), std::span<const std::byte, 12>>);
+
+    // This would not compile:
+    // auto invalid = as_writable_bytes(const_bytes);
+  }
+
+  SECTION("byte_span to std::span<T>") {
+    std::array<int, 3> data = {1, 2, 3};
+    auto bytes = byte_span{data};
+
+    auto readonly = as_span<int>(bytes);
+    static_assert(std::is_same_v<decltype(readonly), std::span<const int, 3>>);
+    REQUIRE(readonly[0] == 1);
+
+    auto writable = as_writable_span<int>(bytes);
+    static_assert(std::is_same_v<decltype(writable), std::span<int, 3>>);
+    writable[0] = 42;
+    REQUIRE(data[0] == 42);
+
+    // Const byte_span can only be converted to const span
+    const auto const_bytes = byte_span{data};
+    auto const_view = as_span<int>(const_bytes);
+
+    // This would not compile:
+    // auto invalid = as_writable_span<int>(const_bytes);
+  }
+
+  SECTION("byte_span to string_view") {
+    auto text = "Hello"sv;
+    auto bytes = byte_span{text.data(), text.size()};
+
+    auto sv = as_sv(bytes);
+    REQUIRE(sv == text);
+  }
+
+  SECTION("dynamic extent") {
+    auto buf = buffer{};
+
+    auto text = "Hello, World!"sv;
+    REQUIRE(buf.write(byte_span{text.data(), text.size()}) == text.size());
+    REQUIRE(as_sv(buf.view()) == text);
+
+    struct point {
+      float x, y;
+    };
+    auto p = point{1.0F, 2.0F};
+
+    REQUIRE(buf.write(byte_span{&p, 1}) == sizeof(p));
+    const auto& result =
+        as_value<point>(buf.view().subspan(text.size(), sizeof(p)));
+    REQUIRE(result.x == Catch::Approx(p.x));
+    REQUIRE(result.y == Catch::Approx(p.y));
+  }
+
+  SECTION("static extent") {
+    struct alignas(4) small_struct {
+      uint32_t value;
+    };
+    struct alignas(8) large_struct {
+      uint64_t value;
+    };
+
+    std::array<std::byte, 4> data{};
+    auto view = byte_span<std::byte, 4>{data};
+
+    // OK: sizeof(SmallStruct) <= 4
+    static_assert(sizeof(small_struct) <= 4);
+    const auto& small = as_value<small_struct>(view);
+
+    // Would not compile: sizeof(LargeStruct) > 4
+    // auto& large = as_value<LargeStruct>(view);  // Compilation error
+  }
+}
+
 #pragma GCC diagnostic pop
 
-// NOLINTEND(misc-const-correctness)
+// NOLINTEND(misc-const-correctness,clang-analyzer-deadcode.DeadStores)
