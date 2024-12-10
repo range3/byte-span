@@ -1,9 +1,8 @@
 #include <array>
 #include <cstddef>
-// #include <cstdint>
 #include <span>
+#include <string_view>
 #include <type_traits>
-// #include <utility>
 #include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -11,6 +10,8 @@
 // #include <catch2/generators/catch_generators_all.hpp>
 
 #include "lsm-tree/byte_span.hpp"
+
+// NOLINTBEGIN(misc-const-correctness)
 
 using lsm::utils::byte_span;
 using lsm::utils::byte_view;
@@ -201,4 +202,97 @@ TEST_CASE("byte_span construction from other byte_span", "[byte_span]") {
   }
 }
 
+TEST_CASE("byte_span construction from string_view",
+          "[byte_span][string_view]") {
+  SECTION("from non-const string_view") {
+    std::string_view sv = "Hello";
+    auto bs = byte_span{sv};
+
+    STATIC_REQUIRE(std::is_same_v<decltype(bs), byte_span<const std::byte>>);
+    REQUIRE(bs.size() == 5 * sizeof(char));
+    REQUIRE(bs.data() == reinterpret_cast<const std::byte*>(sv.data()));
+  }
+
+  SECTION("from const string_view") {
+    const std::string_view sv = "Hello";
+    auto bs = byte_span{sv};
+
+    STATIC_REQUIRE(std::is_same_v<decltype(bs), byte_span<const std::byte>>);
+    REQUIRE(bs.size() == 5 * sizeof(char));
+    REQUIRE(bs.data() == reinterpret_cast<const std::byte*>(sv.data()));
+  }
+
+  SECTION("empty string_view") {
+    std::string_view sv;
+    auto bs = byte_span{sv};
+
+    REQUIRE(bs.empty());
+    REQUIRE(bs.data() == reinterpret_cast<const std::byte*>(sv.data()));
+  }
+
+  SECTION("static extent - should assert") {
+    std::string_view sv = "Hello";
+    auto bs = byte_span<const std::byte, 5>{
+        sv};  // expect assertion if sizeof(char) != 1
+
+    REQUIRE(bs.size() == 5);
+    REQUIRE(bs.data() == reinterpret_cast<const std::byte*>(sv.data()));
+  }
+}
+
+TEMPLATE_TEST_CASE("byte_span construction from various string_view types",
+                   "[byte_span][string_view]",
+                   char,
+                   wchar_t,
+                   char8_t,
+                   char16_t,
+                   char32_t) {
+  using t = TestType; 
+  using sv_t = std::basic_string_view<t>;
+  std::array<t, 3> arr = {t{65}, t{66}, t{67}};  // "ABC"
+  sv_t sv{arr.data(), arr.size()};
+
+  SECTION("dynamic extent") {
+    auto bs = byte_span{sv};
+
+    STATIC_REQUIRE(std::is_same_v<decltype(bs), byte_span<const std::byte>>);
+    REQUIRE(bs.size() == 3 * sizeof(t));
+    REQUIRE(bs.data() == reinterpret_cast<const std::byte*>(sv.data()));
+  }
+
+  SECTION("static extent") {
+    auto bs = byte_span<const std::byte, 3 * sizeof(t)>{sv};
+
+    REQUIRE(bs.size() == 3 * sizeof(t));
+    REQUIRE(bs.data() == reinterpret_cast<const std::byte*>(sv.data()));
+  }
+}
+
+TEST_CASE("byte_span construction from string_view literals",
+          "[byte_span][string_view]") {
+  using namespace std::string_view_literals;
+
+  SECTION("dynamic extent with various literals") {
+    auto bs1 = byte_span{"Hello"sv};
+    auto bs2 = byte_span{L"Hello"sv};
+    auto bs3 = byte_span{u8"Hello"sv};
+    auto bs4 = byte_span{u"Hello"sv};
+    auto bs5 = byte_span{U"Hello"sv};
+
+    STATIC_REQUIRE(std::is_same_v<decltype(bs1), byte_span<const std::byte>>);
+    STATIC_REQUIRE(std::is_same_v<decltype(bs2), byte_span<const std::byte>>);
+    STATIC_REQUIRE(std::is_same_v<decltype(bs3), byte_span<const std::byte>>);
+    STATIC_REQUIRE(std::is_same_v<decltype(bs4), byte_span<const std::byte>>);
+    STATIC_REQUIRE(std::is_same_v<decltype(bs5), byte_span<const std::byte>>);
+
+    REQUIRE(bs1.size() == 5 * sizeof(char));
+    REQUIRE(bs2.size() == 5 * sizeof(wchar_t));
+    REQUIRE(bs3.size() == 5 * sizeof(char8_t));
+    REQUIRE(bs4.size() == 5 * sizeof(char16_t));
+    REQUIRE(bs5.size() == 5 * sizeof(char32_t));
+  }
+}
+
 #pragma GCC diagnostic pop
+
+// NOLINTEND(misc-const-correctness)

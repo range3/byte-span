@@ -1,6 +1,7 @@
 #include <array>
 #include <cstddef>
 #include <span>
+#include <string_view>
 #include <type_traits>
 #include <vector>
 
@@ -249,6 +250,38 @@ TEST_CASE("byte_span CTAD tests", "[byte_span][ctad]") {
     auto bs10 = byte_span<const std::byte, 3>{s10};  // explicit conversion
     STATIC_REQUIRE(
         std::is_same_v<decltype(bs10), byte_span<const std::byte, 3>>);
+  }
+
+  SECTION("std::string_view CTAD") {
+    using namespace std::string_view_literals;
+
+    // Basic string_view
+    auto sv = std::string_view{"Hello"};
+    auto bs1 = byte_span{sv};
+    STATIC_REQUIRE(std::is_same_v<decltype(bs1), byte_span<const std::byte>>);
+
+    // string_view literals
+    auto bs_lit1 = byte_span{"Hello"sv};
+    auto bs_lit2 = byte_span{L"Hello"sv};
+    auto bs_lit3 = byte_span{u8"Hello"sv};
+    auto bs_lit4 = byte_span{u"Hello"sv};
+    auto bs_lit5 = byte_span{U"Hello"sv};
+
+    STATIC_REQUIRE(
+        std::is_same_v<decltype(bs_lit1), byte_span<const std::byte>>);
+    STATIC_REQUIRE(
+        std::is_same_v<decltype(bs_lit2), byte_span<const std::byte>>);
+    STATIC_REQUIRE(
+        std::is_same_v<decltype(bs_lit3), byte_span<const std::byte>>);
+    STATIC_REQUIRE(
+        std::is_same_v<decltype(bs_lit4), byte_span<const std::byte>>);
+    STATIC_REQUIRE(
+        std::is_same_v<decltype(bs_lit5), byte_span<const std::byte>>);
+
+    // const string_view
+    const auto csv = std::string_view{"World"};
+    auto bs6 = byte_span{csv};
+    STATIC_REQUIRE(std::is_same_v<decltype(bs6), byte_span<const std::byte>>);
   }
 }
 
