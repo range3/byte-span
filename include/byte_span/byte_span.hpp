@@ -59,6 +59,15 @@ constexpr auto calculate_size(size_t count) noexcept -> size_t {
   }
 }
 
+template <typename T>
+using void_pointer_for =
+    std::conditional_t<std::is_const_v<T>, const void*, void*>;
+
+template <typename To, typename From>
+constexpr auto pointer_cast(From* p) noexcept -> To* {
+  return static_cast<To*>(static_cast<void_pointer_for<From>>(p));
+}
+
 }  // namespace detail
 
 template <typename B, size_t Extent = dynamic_extent>
@@ -102,7 +111,7 @@ class byte_span {
   constexpr explicit(Extent != dynamic_extent
                      || !detail::byte_like<std::iter_value_t<It>>)
       byte_span(It first, End last) noexcept(noexcept(last - first))
-      : span_{reinterpret_cast<pointer>(std::to_address(first)),
+      : span_{detail::pointer_cast<element_type>(std::to_address(first)),
               detail::calculate_size<std::iter_value_t<It>>(
                   static_cast<size_type>(last - first))} {}
 
@@ -113,7 +122,7 @@ class byte_span {
   constexpr explicit(Extent != dynamic_extent
                      || !detail::byte_like<std::iter_value_t<It>>)
       byte_span(It first, size_type count) noexcept
-      : span_{reinterpret_cast<pointer>(std::to_address(first)),
+      : span_{detail::pointer_cast<element_type>(std::to_address(first)),
               detail::calculate_size<std::iter_value_t<It>>(count)} {}
 
   // From void* - always explicit
@@ -122,7 +131,7 @@ class byte_span {
     requires std::is_void_v<VoidType>
           && detail::const_convertible<VoidType, element_type>
   constexpr explicit byte_span(VoidType* data, size_type size) noexcept
-      : span_{reinterpret_cast<pointer>(data), size} {}
+      : span_{detail::pointer_cast<element_type>(data), size} {}
 
   // From c-style arrays
   template <typename T, size_t ArrayExtent>
@@ -132,7 +141,7 @@ class byte_span {
   constexpr explicit(!detail::byte_like<T>)
       // NOLINTNEXTLINE
       byte_span(T (&arr)[ArrayExtent]) noexcept
-      : span_{reinterpret_cast<pointer>(arr),
+      : span_{detail::pointer_cast<element_type>(std::data(arr)),
               detail::calculate_size<T>(ArrayExtent)} {}
 
   // From std::array
@@ -143,7 +152,7 @@ class byte_span {
   constexpr explicit(!detail::byte_like<T>)
       // NOLINTNEXTLINE
       byte_span(std::array<T, ArrayExtent>& arr) noexcept
-      : span_{reinterpret_cast<pointer>(arr.data()),
+      : span_{detail::pointer_cast<element_type>(arr.data()),
               detail::calculate_size<T>(ArrayExtent)} {}
 
   // From const std::array
@@ -154,7 +163,7 @@ class byte_span {
   constexpr explicit(!detail::byte_like<T>)
       // NOLINTNEXTLINE
       byte_span(const std::array<T, ArrayExtent>& arr) noexcept
-      : span_{reinterpret_cast<pointer>(arr.data()),
+      : span_{detail::pointer_cast<element_type>(arr.data()),
               detail::calculate_size<T>(ArrayExtent)} {}
 
   // From Ranges
@@ -175,7 +184,7 @@ class byte_span {
       // NOLINTNEXTLINE
       byte_span(Range&& range) noexcept(noexcept(std::ranges::data(range))
                                         && noexcept(std::ranges::size(range)))
-      : span_{reinterpret_cast<pointer>(std::ranges::data(range)),
+      : span_{detail::pointer_cast<element_type>(std::ranges::data(range)),
               detail::calculate_size<std::ranges::range_value_t<Range>>(
                   std::ranges::size(range))} {
     if constexpr (Extent != dynamic_extent) {
@@ -196,7 +205,7 @@ class byte_span {
                      || Extent != dynamic_extent)
       // NOLINTNEXTLINE
       byte_span(const std::span<OtherElementType, OtherExtent>& s) noexcept
-      : span_{reinterpret_cast<pointer>(s.data()),
+      : span_{detail::pointer_cast<element_type>(s.data()),
               detail::calculate_size<OtherElementType>(s.size())} {
     if constexpr (Extent != dynamic_extent) {
       assert(detail::calculate_size<OtherElementType>(s.size()) == Extent);
@@ -349,7 +358,7 @@ constexpr void swap(byte_span<B, Extent>& lhs,
 
 template <typename B, size_t N>
 constexpr auto as_sv(byte_span<B, N> bytes) noexcept -> std::string_view {
-  return {reinterpret_cast<const char*>(bytes.data()), bytes.size()};
+  return {detail::pointer_cast<const char>(bytes.data()), bytes.size()};
 }
 
 template <typename T, typename B, size_t N>
@@ -357,7 +366,7 @@ template <typename T, typename B, size_t N>
             && (!std::is_void_v<T>) && (N == dynamic_extent || N >= sizeof(T))
 constexpr auto as_value(byte_span<B, N> bytes) noexcept -> const T& {
   assert(bytes.size() >= sizeof(T));
-  return *std::launder(reinterpret_cast<const T*>(bytes.data()));
+  return *std::launder(detail::pointer_cast<const T>(bytes.data()));
 }
 
 // byte_span -> std::span<std::byte>
@@ -385,7 +394,7 @@ constexpr auto as_writable_span(byte_span<B, N> bytes) noexcept
     -> std::span<T, N == dynamic_extent ? dynamic_extent : N / sizeof(T)> {
   assert(bytes.size() % sizeof(T) == 0);
   return std::span<T, (N == dynamic_extent ? dynamic_extent : N / sizeof(T))>{
-      std::launder(reinterpret_cast<T*>(bytes.data())),
+      std::launder(detail::pointer_cast<T>(bytes.data())),
       bytes.size() / sizeof(T)};
 }
 
@@ -399,7 +408,7 @@ constexpr auto as_span(byte_span<B, N> bytes) noexcept
   assert(bytes.size() % sizeof(T) == 0);
   return std::span<const T,
                    (N == dynamic_extent ? dynamic_extent : N / sizeof(T))>{
-      std::launder(reinterpret_cast<const T*>(bytes.data())),
+      std::launder(detail::pointer_cast<const T>(bytes.data())),
       bytes.size() / sizeof(T)};
 }
 
