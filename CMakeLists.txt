@@ -4,7 +4,7 @@ include(cmake/prelude.cmake)
 
 project(
     ByteSpan
-    VERSION 0.1.0
+    VERSION 0.2.0
     DESCRIPTION "Lightweight view class for efficient handling of byte data"
     HOMEPAGE_URL "https://github.com/range3/ByteSpan"
     LANGUAGES CXX
