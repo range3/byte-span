@@ -3,10 +3,10 @@ cmake_minimum_required(VERSION 3.14)
 include(cmake/prelude.cmake)
 
 project(
-    byte-span
+    ByteSpan
     VERSION 0.1.0
     DESCRIPTION "Lightweight view class for efficient handling of byte data"
-    HOMEPAGE_URL "https://github.com/range3/byte-span"
+    HOMEPAGE_URL "https://github.com/range3/ByteSpan"
     LANGUAGES CXX
 )
 
@@ -15,21 +15,21 @@ include(cmake/variables.cmake)
 
 # ---- Declare library ----
 
-add_library(byte-span_byte-span INTERFACE)
-add_library(byte-span::byte-span ALIAS byte-span_byte-span)
+add_library(ByteSpan_ByteSpan INTERFACE)
+add_library(ByteSpan::ByteSpan ALIAS ByteSpan_ByteSpan)
 
 set_property(
-    TARGET byte-span_byte-span PROPERTY
-    EXPORT_NAME byte-span
+    TARGET ByteSpan_ByteSpan PROPERTY
+    EXPORT_NAME ByteSpan
 )
 
 target_include_directories(
-    byte-span_byte-span ${warning_guard}
+    ByteSpan_ByteSpan ${warning_guard}
     INTERFACE
     "\$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
 )
 
-target_compile_features(byte-span_byte-span INTERFACE cxx_std_20)
+target_compile_features(ByteSpan_ByteSpan INTERFACE cxx_std_20)
 
 # ---- Install rules ----
 
@@ -39,12 +39,12 @@ endif()
 
 # ---- Developer mode ----
 
-if(NOT byte-span_DEVELOPER_MODE)
+if(NOT ByteSpan_DEVELOPER_MODE)
   return()
 elseif(NOT PROJECT_IS_TOP_LEVEL)
   message(
       AUTHOR_WARNING
-      "Developer mode is intended for developers of byte-span"
+      "Developer mode is intended for developers of ByteSpan"
   )
 endif()
 

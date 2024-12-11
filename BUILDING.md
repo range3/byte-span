@@ -65,18 +65,18 @@ cmake --install build --config Release
 This project exports a CMake package to be used with the [`find_package`][3]
 command of CMake:
 
-* Package name: `byte-span`
-* Target name: `byte-span::byte-span`
+* Package name: `ByteSpan`
+* Target name: `ByteSpan::ByteSpan`
 
 Example usage:
 
 ```cmake
-find_package(byte-span REQUIRED)
+find_package(ByteSpan REQUIRED)
 # Declare the imported target as a build requirement using PRIVATE, where
 # project_target is a target created in the consuming project
 target_link_libraries(
     project_target PRIVATE
-    byte-span::byte-span
+    ByteSpan::ByteSpan
 )
 ```
 
