@@ -10,7 +10,7 @@
 #include <string_view>
 #include <type_traits>
 
-namespace lsm::utils {
+namespace range3 {
 
 using std::dynamic_extent;
 
@@ -469,13 +469,13 @@ byte_span(Range&&)
 using byte_view = byte_span<std::byte>;
 using cbyte_view = byte_span<const std::byte>;
 
-}  // namespace lsm::utils
+}  // namespace range3
 
 // Opt-in to borrowed_range concept
 template <typename T, std::size_t N>
-constexpr bool std::ranges::enable_borrowed_range<lsm::utils::byte_span<T, N>> =
+constexpr bool std::ranges::enable_borrowed_range<range3::byte_span<T, N>> =
     true;
 
 // Opt-in to view concept
 template <typename B, size_t N>
-constexpr bool std::ranges::enable_view<lsm::utils::byte_span<B, N>> = true;
+constexpr bool std::ranges::enable_view<range3::byte_span<B, N>> = true;

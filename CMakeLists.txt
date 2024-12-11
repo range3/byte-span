@@ -3,11 +3,11 @@ cmake_minimum_required(VERSION 3.14)
 include(cmake/prelude.cmake)
 
 project(
-    lsm-tree
+    byte-span
     VERSION 0.1.0
-    DESCRIPTION "LSM-tree"
-    HOMEPAGE_URL "https://github.com/range3/lsm-tree"
-    LANGUAGES NONE
+    DESCRIPTION "Lightweight view class for efficient handling of byte data"
+    HOMEPAGE_URL "https://github.com/range3/byte-span"
+    LANGUAGES CXX
 )
 
 include(cmake/project-is-top-level.cmake)
@@ -15,25 +15,21 @@ include(cmake/variables.cmake)
 
 # ---- Declare library ----
 
-add_library(lsm-tree_lsm-tree INTERFACE)
-add_library(lsm-tree::lsm-tree ALIAS lsm-tree_lsm-tree)
+add_library(byte-span_byte-span INTERFACE)
+add_library(byte-span::byte-span ALIAS byte-span_byte-span)
 
 set_property(
-    TARGET lsm-tree_lsm-tree PROPERTY
-    EXPORT_NAME lsm-tree
+    TARGET byte-span_byte-span PROPERTY
+    EXPORT_NAME byte-span
 )
 
 target_include_directories(
-    lsm-tree_lsm-tree ${warning_guard}
+    byte-span_byte-span ${warning_guard}
     INTERFACE
     "\$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
 )
 
-target_compile_features(lsm-tree_lsm-tree INTERFACE cxx_std_20)
-
-find_package(fmt REQUIRED)
-find_package(inspector REQUIRED)
-target_link_libraries(lsm-tree_lsm-tree INTERFACE fmt::fmt inspector::inspector)
+target_compile_features(byte-span_byte-span INTERFACE cxx_std_20)
 
 # ---- Install rules ----
 
@@ -43,12 +39,12 @@ endif()
 
 # ---- Developer mode ----
 
-if(NOT lsm-tree_DEVELOPER_MODE)
+if(NOT byte-span_DEVELOPER_MODE)
   return()
 elseif(NOT PROJECT_IS_TOP_LEVEL)
   message(
       AUTHOR_WARNING
-      "Developer mode is intended for developers of lsm-tree"
+      "Developer mode is intended for developers of byte-span"
   )
 endif()
 

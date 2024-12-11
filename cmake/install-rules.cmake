@@ -1,6 +1,6 @@
 if(PROJECT_IS_TOP_LEVEL)
   set(
-      CMAKE_INSTALL_INCLUDEDIR "include/lsm-tree-${PROJECT_VERSION}"
+      CMAKE_INSTALL_INCLUDEDIR "include/byte-span-${PROJECT_VERSION}"
       CACHE STRING ""
   )
   set_property(CACHE CMAKE_INSTALL_INCLUDEDIR PROPERTY TYPE PATH)
@@ -13,17 +13,17 @@ include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
 # find_package(<package>) call for consumers to find this project
-set(package lsm-tree)
+set(package byte-span)
 
 install(
     DIRECTORY include/
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-    COMPONENT lsm-tree_Development
+    COMPONENT byte-span_Development
 )
 
 install(
-    TARGETS lsm-tree_lsm-tree
-    EXPORT lsm-treeTargets
+    TARGETS byte-span_byte-span
+    EXPORT byte-spanTargets
     INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 )
 
@@ -35,30 +35,30 @@ write_basic_package_version_file(
 
 # Allow package maintainers to freely override the path for the configs
 set(
-    lsm-tree_INSTALL_CMAKEDIR "${CMAKE_INSTALL_DATADIR}/${package}"
+    byte-span_INSTALL_CMAKEDIR "${CMAKE_INSTALL_DATADIR}/${package}"
     CACHE STRING "CMake package config location relative to the install prefix"
 )
-set_property(CACHE lsm-tree_INSTALL_CMAKEDIR PROPERTY TYPE PATH)
-mark_as_advanced(lsm-tree_INSTALL_CMAKEDIR)
+set_property(CACHE byte-span_INSTALL_CMAKEDIR PROPERTY TYPE PATH)
+mark_as_advanced(byte-span_INSTALL_CMAKEDIR)
 
 install(
     FILES cmake/install-config.cmake
-    DESTINATION "${lsm-tree_INSTALL_CMAKEDIR}"
+    DESTINATION "${byte-span_INSTALL_CMAKEDIR}"
     RENAME "${package}Config.cmake"
-    COMPONENT lsm-tree_Development
+    COMPONENT byte-span_Development
 )
 
 install(
     FILES "${PROJECT_BINARY_DIR}/${package}ConfigVersion.cmake"
-    DESTINATION "${lsm-tree_INSTALL_CMAKEDIR}"
-    COMPONENT lsm-tree_Development
+    DESTINATION "${byte-span_INSTALL_CMAKEDIR}"
+    COMPONENT byte-span_Development
 )
 
 install(
-    EXPORT lsm-treeTargets
-    NAMESPACE lsm-tree::
-    DESTINATION "${lsm-tree_INSTALL_CMAKEDIR}"
-    COMPONENT lsm-tree_Development
+    EXPORT byte-spanTargets
+    NAMESPACE byte-span::
+    DESTINATION "${byte-span_INSTALL_CMAKEDIR}"
+    COMPONENT byte-span_Development
 )
 
 if(PROJECT_IS_TOP_LEVEL)

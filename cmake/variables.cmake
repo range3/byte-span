@@ -1,11 +1,11 @@
 # ---- Developer mode ----
 
 # Developer mode enables targets and code paths in the CMake scripts that are
-# only relevant for the developer(s) of lsm-tree
+# only relevant for the developer(s) of byte-span
 # Targets necessary to build the project must be provided unconditionally, so
 # consumers can trivially build and package the project
 if(PROJECT_IS_TOP_LEVEL)
-  option(lsm-tree_DEVELOPER_MODE "Enable developer mode" OFF)
+  option(byte-span_DEVELOPER_MODE "Enable developer mode" OFF)
 endif()
 
 # ---- Warning guard ----
@@ -17,12 +17,12 @@ endif()
 set(warning_guard "")
 if(NOT PROJECT_IS_TOP_LEVEL)
   option(
-      lsm-tree_INCLUDES_WITH_SYSTEM
-      "Use SYSTEM modifier for lsm-tree's includes, disabling warnings"
+      byte-span_INCLUDES_WITH_SYSTEM
+      "Use SYSTEM modifier for byte-span's includes, disabling warnings"
       ON
   )
-  mark_as_advanced(lsm-tree_INCLUDES_WITH_SYSTEM)
-  if(lsm-tree_INCLUDES_WITH_SYSTEM)
+  mark_as_advanced(byte-span_INCLUDES_WITH_SYSTEM)
+  if(byte-span_INCLUDES_WITH_SYSTEM)
     set(warning_guard SYSTEM)
   endif()
 endif()

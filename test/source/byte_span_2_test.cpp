@@ -11,20 +11,20 @@
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 
-#include "lsm-tree/byte_span.hpp"
+#include "byte_span/byte_span.hpp"
 
 // NOLINTBEGIN(misc-const-correctness,clang-analyzer-deadcode.DeadStores)
 
-using lsm::utils::as_bytes;
-using lsm::utils::as_span;
-using lsm::utils::as_sv;
-using lsm::utils::as_writable_bytes;
-using lsm::utils::as_writable_span;
-using lsm::utils::byte_span;
-using lsm::utils::byte_view;
-using lsm::utils::cbyte_view;
-using lsm::utils::detail::byte_like;
-using lsm::utils::detail::const_convertible;
+using range3::as_bytes;
+using range3::as_span;
+using range3::as_sv;
+using range3::as_writable_bytes;
+using range3::as_writable_span;
+using range3::byte_span;
+using range3::byte_view;
+using range3::cbyte_view;
+using range3::detail::byte_like;
+using range3::detail::const_convertible;
 using namespace std::string_view_literals;
 
 #pragma GCC diagnostic push
@@ -179,7 +179,7 @@ TEST_CASE("byte_span construction from other byte_span", "[byte_span]") {
 
     REQUIRE(bs.size() == original.size());
     REQUIRE(bs.data() == original.data());
-    REQUIRE(bs2.extent == lsm::utils::dynamic_extent);
+    REQUIRE(bs2.extent == range3::dynamic_extent);
   }
 
   SECTION("explicit conversions - static extent") {

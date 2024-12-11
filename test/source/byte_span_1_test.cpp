@@ -6,13 +6,13 @@
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 
-#include "lsm-tree/byte_span.hpp"
+#include "byte_span/byte_span.hpp"
 
-using lsm::utils::byte_span;
-using lsm::utils::byte_view;
-using lsm::utils::cbyte_view;
-using lsm::utils::detail::byte_like;
-using lsm::utils::detail::const_convertible;
+using range3::byte_span;
+using range3::byte_view;
+using range3::cbyte_view;
+using range3::detail::byte_like;
+using range3::detail::const_convertible;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -385,7 +385,7 @@ TEST_CASE("byte_span construction from std::array - size checks",
   SECTION("dynamic extent") {
     auto const span = byte_span<std::byte>{arr};
     REQUIRE(span.size() == sizeof(int) * 3);
-    STATIC_REQUIRE(span.extent == lsm::utils::dynamic_extent);
+    STATIC_REQUIRE(span.extent == range3::dynamic_extent);
   }
 
   SECTION("static extent") {

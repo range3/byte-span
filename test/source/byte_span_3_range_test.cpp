@@ -6,11 +6,11 @@
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 
-#include "lsm-tree/byte_span.hpp"
+#include "byte_span/byte_span.hpp"
 
-using lsm::utils::byte_span;
-using lsm::utils::byte_view;
-using lsm::utils::cbyte_view;
+using range3::byte_span;
+using range3::byte_view;
+using range3::cbyte_view;
 
 struct trivial_struct {
   int x;

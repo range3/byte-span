@@ -7,9 +7,9 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "lsm-tree/byte_span.hpp"
+#include "byte_span/byte_span.hpp"
 
-using lsm::utils::byte_span;
+using range3::byte_span;
 
 // NOLINTBEGIN(misc-const-correctness)
 
