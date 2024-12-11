@@ -1,4 +1,4 @@
-// NOLINTBEGIN(misc-const-correctness,clang-analyzer-deadcode.DeadStores,unused-includes)
+// NOLINTBEGIN(misc-const-correctness,clang-analyzer-deadcode.DeadStores)
 #if defined(__cpp_constexpr) && __cpp_constexpr >= 202207L  // C++26
 #include <algorithm>
 #include <array>
@@ -14,7 +14,6 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "byte_span/byte_span.hpp"
-
 
 using range3::as_bytes;
 using range3::as_span;
@@ -32,31 +31,27 @@ using namespace std::string_view_literals;
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 
-
-
 TEST_CASE("byte_span compile-time construction", "[byte_span]") {
-    SECTION("from iterator and sentinel") {
-        constexpr std::array<char, 4> arr = {'a', 'b', 'c', 'd'};
-        constexpr byte_span view(arr.begin(), arr.end());
-        STATIC_REQUIRE(view.size() == 4);
-        REQUIRE(view.size() == 4);
-    }
+  SECTION("from iterator and sentinel") {
+    constexpr std::array<char, 4> arr = {'a', 'b', 'c', 'd'};
+    constexpr byte_span view(arr.begin(), arr.end());
+    STATIC_REQUIRE(view.size() == 4);
+    REQUIRE(view.size() == 4);
+  }
 
-    SECTION("from iterator and count") {
-        constexpr std::array<char, 4> arr = {'a', 'b', 'c', 'd'};
-        constexpr byte_span view(arr.begin(), 4);
-        STATIC_REQUIRE(view.size() == 4);
-        REQUIRE(view.size() == 4);
-    }
-    
-    /*
-    SECTION("from std::array") {}
-    SECTION("from C array") {}
-    SECTION("from std::span") {}
-    */
+  SECTION("from iterator and count") {
+    constexpr std::array<char, 4> arr = {'a', 'b', 'c', 'd'};
+    constexpr byte_span view(arr.begin(), 4);
+    STATIC_REQUIRE(view.size() == 4);
+    REQUIRE(view.size() == 4);
+  }
+
+  /*
+  SECTION("from std::array") {}
+  SECTION("from C array") {}
+  SECTION("from std::span") {}
+  */
 }
-
-
 
 #pragma GCC diagnostic pop
 
